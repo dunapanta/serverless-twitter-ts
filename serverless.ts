@@ -1,14 +1,15 @@
 import type { AWS } from '@serverless/typescript';
 
-import hello from '@functions/hello';
+import CognitoResources from './serverless/cognitoResources';
 
 const serverlessConfiguration: AWS = {
   service: 'serverless-twitter-ts',
   frameworkVersion: '3',
-  plugins: ['serverless-esbuild'],
+  plugins: ['serverless-esbuild', 'serverless-appsync-plugin'],
   provider: {
     name: 'aws',
     runtime: 'nodejs14.x',
+    region: 'us-east-1',
     apiGateway: {
       minimumCompressionSize: 1024,
       shouldStartNameWithService: true,
@@ -19,9 +20,29 @@ const serverlessConfiguration: AWS = {
     },
   },
   // import the function via paths
-  functions: { hello },
+  //functions: { hello },
+  resources: {
+    Resources: {
+      ...CognitoResources,
+    },
+    Outputs: {
+      CognitoUserPoolId: {
+        Value: { Ref: 'CognitoUserPool' },
+      }, 
+    },
+  },
   package: { individually: true },
   custom: {
+    appSync: {
+      name: 'serverless-twitter-ts',
+      schema: 'schema.api.graphql',
+      authenticationType: 'AMAZON_COGNITO_USER_POOLS',
+      userPoolsConfig: {
+        awsRegion: 'us-east-1',
+        defaultAction: 'ALLOW',
+        userPoolId: { Ref: 'CognitoUserPool' },
+      }
+    },
     esbuild: {
       bundle: true,
       minify: false,
